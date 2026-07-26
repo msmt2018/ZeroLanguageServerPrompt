@@ -60,4 +60,5 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(project(":lsp-manager"))
 }

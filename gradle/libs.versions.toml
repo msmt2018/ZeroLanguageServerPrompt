@@ -5,6 +5,8 @@ androidxActivity = "1.11.0"
 androidxCore = "1.17.0"
 androidxLifecycle = "2.9.2"
 androidxCompose = "2025.10.01"
+lsp4j = "1.0.0"
+soraEditor = "0.24.6"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
@@ -17,6 +19,11 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxCompose" }
+lsp4j = { group = "org.eclipse.lsp4j", name = "org.eclipse.lsp4j", version.ref = "lsp4j" }
+lsp4j-jsonrpc = { group = "org.eclipse.lsp4j", name = "org.eclipse.lsp4j.jsonrpc", version.ref = "lsp4j" }
+sora-editor-bom = { group = "io.github.rosemoe", name = "editor-bom", version.ref = "soraEditor" }
+sora-editor = { group = "io.github.rosemoe", name = "editor" }
+sora-language-textmate = { group = "io.github.rosemoe", name = "language-textmate" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

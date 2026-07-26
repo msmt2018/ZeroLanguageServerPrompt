@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ZeroLanguageServerPrompt"
 
-include(":app")
+include(":app", ":editor", ":lsp-api", ":lsp-manager")
