@@ -32,3 +32,10 @@
 3. Add process/socket/embedded server launchers, workspace routing and capability negotiation in `:lsp-manager`.
 4. Expand Compose windows for completion, hover documentation, go-to symbol, diagnostics tree, server logs and lifecycle controls.
 5. Add integration tests and sample server wiring in `:app` after dependency resolution is available in CI.
+
+## 5. LSP window UX rules
+
+- The default tool window follows IDEA/Android Studio interaction patterns: a compact header, server lifecycle actions, tabbed panes, per-row navigation actions and secondary configuration actions.
+- Actions are exposed through `LspToolWindowActions` instead of being hard-coded, so host apps can wire Run, Stop, Restart, Clear, Refresh, Jump and Settings to their own command system.
+- Diagnostic and outline rows always provide a direct navigation action, while lifecycle rows expose restart controls for quick server recovery.
+- The Compose implementation remains a default skin; products can replace it by providing another `LspWindowRegistry` or another composable over `LspToolWindowState`.

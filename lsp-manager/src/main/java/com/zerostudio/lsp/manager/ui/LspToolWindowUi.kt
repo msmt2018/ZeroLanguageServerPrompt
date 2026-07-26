@@ -6,26 +6,45 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Divider
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberScrollState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.zerostudio.lsp.api.LspServerState
+
+@Immutable
+data class LspToolWindowActions(
+    val onStartServer: () -> Unit = {},
+    val onStopServer: () -> Unit = {},
+    val onRestartServer: () -> Unit = {},
+    val onClearDiagnostics: () -> Unit = {},
+    val onRefreshOutline: () -> Unit = {},
+    val onOpenSettings: () -> Unit = {},
+    val onNavigateDiagnostic: (LspDiagnosticItem) -> Unit = {},
+    val onNavigateSymbol: (LspOutlineItem) -> Unit = {},
+)
 
 @Immutable
 data class LspToolWindowState(
@@ -69,6 +88,7 @@ enum class LspToolWindowTab(val title: String) {
 fun LspToolWindowHost(
     state: LspToolWindowState,
     modifier: Modifier = Modifier,
+    actions: LspToolWindowActions = LspToolWindowActions(),
     initialTab: LspToolWindowTab = LspToolWindowTab.Diagnostics,
 ) {
     var selectedTab by remember { mutableStateOf(initialTab) }
@@ -88,21 +108,69 @@ fun LspToolWindowHost(
             }
         },
     ) { innerPadding ->
-        Column(Modifier.padding(innerPadding).padding(16.dp)) {
-            Text(selectedTab.title, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.padding(innerPadding).padding(12.dp)) {
+            ToolWindowHeader(
+                selectedTab = selectedTab,
+                state = state,
+                actions = actions,
+            )
+            Spacer(Modifier.height(8.dp))
+            Divider()
+            Spacer(Modifier.height(8.dp))
             when (selectedTab) {
-                LspToolWindowTab.Diagnostics -> DiagnosticsPane(state.diagnostics)
-                LspToolWindowTab.Outline -> OutlinePane(state.outline)
+                LspToolWindowTab.Diagnostics -> DiagnosticsPane(state.diagnostics, actions)
+                LspToolWindowTab.Outline -> OutlinePane(state.outline, actions)
                 LspToolWindowTab.Documentation -> DocumentationPane(state.documentation)
-                LspToolWindowTab.Lifecycle -> LifecyclePane(state.lifecycle)
+                LspToolWindowTab.Lifecycle -> LifecyclePane(state.lifecycle, actions)
             }
         }
     }
 }
 
 @Composable
-private fun DiagnosticsPane(items: List<LspDiagnosticItem>) {
+private fun ToolWindowHeader(
+    selectedTab: LspToolWindowTab,
+    state: LspToolWindowState,
+    actions: LspToolWindowActions,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "Language Servers · ${selectedTab.title}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Diagnostics ${state.diagnostics.size} · Symbols ${state.outline.size} · Servers ${state.lifecycle.size}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            OutlinedButton(onClick = actions.onOpenSettings) { Text("⚙") }
+        }
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilledTonalButton(onClick = actions.onStartServer) { Text("▶ Run") }
+            OutlinedButton(onClick = actions.onStopServer) { Text("■ Stop") }
+            OutlinedButton(onClick = actions.onRestartServer) { Text("↻ Restart") }
+            when (selectedTab) {
+                LspToolWindowTab.Diagnostics -> TextButton(onClick = actions.onClearDiagnostics) { Text("Clear") }
+                LspToolWindowTab.Outline -> TextButton(onClick = actions.onRefreshOutline) { Text("Refresh") }
+                LspToolWindowTab.Documentation -> TextButton(onClick = actions.onOpenSettings) { Text("Open Docs Settings") }
+                LspToolWindowTab.Lifecycle -> TextButton(onClick = actions.onOpenSettings) { Text("Configure Servers") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagnosticsPane(items: List<LspDiagnosticItem>, actions: LspToolWindowActions) {
     if (items.isEmpty()) {
         EmptyPane("暂无诊断。")
         return
@@ -110,14 +178,17 @@ private fun DiagnosticsPane(items: List<LspDiagnosticItem>) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items) { item ->
             LspInfoCard(title = item.message, subtitle = "${item.source} · ${item.line}:${item.column}") {
-                AssistChip(onClick = {}, label = { Text(item.severity) })
+                Column {
+                    AssistChip(onClick = {}, label = { Text(item.severity) })
+                    TextButton(onClick = { actions.onNavigateDiagnostic(item) }) { Text("Jump") }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun OutlinePane(items: List<LspOutlineItem>) {
+private fun OutlinePane(items: List<LspOutlineItem>, actions: LspToolWindowActions) {
     if (items.isEmpty()) {
         EmptyPane("暂无文档符号。")
         return
@@ -125,7 +196,10 @@ private fun OutlinePane(items: List<LspOutlineItem>) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items) { item ->
             LspInfoCard(title = item.name, subtitle = item.detail.ifBlank { item.kind }) {
-                AssistChip(onClick = {}, label = { Text(item.kind) })
+                Column {
+                    AssistChip(onClick = {}, label = { Text(item.kind) })
+                    TextButton(onClick = { actions.onNavigateSymbol(item) }) { Text("Navigate") }
+                }
             }
         }
     }
@@ -137,7 +211,7 @@ private fun DocumentationPane(documentation: String) {
 }
 
 @Composable
-private fun LifecyclePane(items: List<LspLifecycleItem>) {
+private fun LifecyclePane(items: List<LspLifecycleItem>, actions: LspToolWindowActions) {
     if (items.isEmpty()) {
         EmptyPane("暂无已注册语言服务器。")
         return
@@ -145,7 +219,10 @@ private fun LifecyclePane(items: List<LspLifecycleItem>) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(items) { item ->
             LspInfoCard(title = item.displayName, subtitle = item.serverId) {
-                AssistChip(onClick = {}, label = { Text(item.state.name) })
+                Column {
+                    AssistChip(onClick = {}, label = { Text(item.state.name) })
+                    TextButton(onClick = actions.onRestartServer) { Text("Restart") }
+                }
             }
         }
     }
