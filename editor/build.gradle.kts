@@ -18,6 +18,7 @@ android {
 }
 
 dependencies {
+    api(project(":lsp-api"))
     implementation(platform(libs.sora.editor.bom))
     api(libs.sora.editor)
     api(libs.sora.language.textmate)
